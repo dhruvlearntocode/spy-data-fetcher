@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
@@ -15,9 +15,9 @@ if not API_KEY or not SECRET_KEY:
 # --- 1. Setup the client and request parameters ---
 client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 
-# --- FIX: End the data request 16 minutes ago to avoid the 15-minute delay ---
-end_date = datetime.now() - timedelta(minutes=16)
-start_date = end_date - timedelta(days=730)
+# --- ✅ FIX: Set a fixed date range for 2022 and 2023 ---
+start_date = datetime(2022, 1, 1)
+end_date = datetime(2023, 12, 31)
 
 request_params = StockBarsRequest(
     symbol_or_symbols=["SPY"],
@@ -27,12 +27,12 @@ request_params = StockBarsRequest(
 )
 
 # --- 2. Fetch the data ---
-print(f"Fetching 2 years of 5-minute SPY data from Alpaca...")
+print(f"Fetching 5-minute SPY data from {start_date.year} to {end_date.year}...")
 bars_df = client.get_stock_bars(request_params).df
 print("Data fetching complete.")
 
 # --- 3. Save the data to CSV ---
-output_filename = "SPY_5min_data_alpaca.csv"
+output_filename = "SPY_5min_data_2022-2023.csv"
 bars_df.reset_index(inplace=True) 
 bars_df.to_csv(output_filename, index=False)
 
