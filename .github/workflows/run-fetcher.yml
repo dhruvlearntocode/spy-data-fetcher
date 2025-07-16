@@ -34,4 +34,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spy-5min-data-alpaca
-          path: SPY_5min_data_2022-2023.csv
+          path: SPY_1min_data_max_history.csv
