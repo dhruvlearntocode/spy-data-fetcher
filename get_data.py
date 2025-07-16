@@ -1,58 +1,42 @@
-import pandas as pd
-from polygon import RESTClient
-from datetime import date, timedelta
-import time
 import os
+from datetime import datetime, timedelta
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 
-# --- Configuration ---
-API_KEY = os.environ.get('POLYGON_API_KEY') 
-TICKER = 'SPY'
-END_DATE = date.today()
-START_DATE = END_DATE - timedelta(days=730)
+# --- Get API credentials from GitHub secrets ---
+API_KEY = os.environ.get('ALPACA_API_KEY')
+SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY')
 
-# --- Main Script ---
-if not API_KEY:
-    raise ValueError("API key not found. Please set the POLYGON_API_KEY secret in GitHub Actions.")
+# --- Check if keys exist ---
+if not API_KEY or not SECRET_KEY:
+    raise ValueError("API keys not found. Please set secrets in GitHub Actions.")
 
-print(f"Starting data fetch for {TICKER} from {START_DATE} to {END_DATE}.")
-print("Requesting all data in a single API call...")
+# --- 1. Setup the client and request parameters ---
+client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 
-# Initialize the client
-client = RESTClient(API_KEY)
+# Request data for the last 2 years
+end_date = datetime.now()
+start_date = end_date - timedelta(days=730)
 
-try:
-    # Request all 5-minute bars for the entire date range at once
-    resp = client.get_aggs(
-        ticker=TICKER,
-        multiplier=5,
-        timespan='minute',
-        from_=START_DATE,
-        to=END_DATE,
-        limit=50000 # Max limit ensures we get all data
-    )
+request_params = StockBarsRequest(
+    symbol_or_symbols=["SPY"],
+    timeframe=TimeFrame(5, TimeFrameUnit.Minute), # 5-minute bars
+    start=start_date,
+    end=end_date
+)
 
-    if not hasattr(resp, 'results') or not resp.results:
-         raise Exception("No data was returned from the API.")
+# --- 2. Fetch the data ---
+print(f"Fetching 2 years of 5-minute SPY data from Alpaca...")
+bars_df = client.get_stock_bars(request_params).df
+print("Data fetching complete.")
 
-    print(f"Successfully fetched {len(resp.results)} bars.")
-    print("Processing data...")
-    
-    # Convert the collected data to a Pandas DataFrame
-    df = pd.DataFrame(resp.results)
-    
-    # Convert UNIX timestamp to readable datetime and set as index
-    df['timestamp'] = pd.to_datetime(df['t'], unit='ms')
-    df.set_index('timestamp', inplace=True)
-    
-    # Rename columns and keep the essentials
-    df.rename(columns={'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume'}, inplace=True)
-    df = df[['open', 'high', 'low', 'close', 'volume']]
-    
-    # Save to a CSV file
-    output_filename = f"{TICKER}_5min_data.csv"
-    df.to_csv(output_filename)
-    
-    print(f"\nSuccess! Data saved to {output_filename}")
+# --- 3. Save the data to CSV ---
+output_filename = "SPY_5min_data_alpaca.csv"
+# The dataframe from Alpaca is multi-indexed by symbol and timestamp,
+# so we reset the index to flatten it for the CSV.
+bars_df.reset_index(inplace=True) 
+bars_df.to_csv(output_filename, index=False)
 
-except Exception as e:
-    print(f"An error occurred: {e}")
+print(f"\nSuccess! Data saved to {output_filename}")
+print(f"Total bars fetched: {len(bars_df)}")
