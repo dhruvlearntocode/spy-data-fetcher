@@ -15,8 +15,8 @@ if not API_KEY or not SECRET_KEY:
 # --- 1. Setup the client and request parameters ---
 client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 
-# Request data for the last 2 years
-end_date = datetime.now()
+# --- FIX: End the data request 16 minutes ago to avoid the 15-minute delay ---
+end_date = datetime.now() - timedelta(minutes=16)
 start_date = end_date - timedelta(days=730)
 
 request_params = StockBarsRequest(
@@ -33,8 +33,6 @@ print("Data fetching complete.")
 
 # --- 3. Save the data to CSV ---
 output_filename = "SPY_5min_data_alpaca.csv"
-# The dataframe from Alpaca is multi-indexed by symbol and timestamp,
-# so we reset the index to flatten it for the CSV.
 bars_df.reset_index(inplace=True) 
 bars_df.to_csv(output_filename, index=False)
 
