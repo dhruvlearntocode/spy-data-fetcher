@@ -15,7 +15,7 @@ if not API_KEY or not SECRET_KEY:
 client = StockHistoricalDataClient(API_KEY, SECRET_KEY)
 
 # --- Set date range for maximum available history ---
-start_date = datetime(2016, 1, 1)
+start_date = datetime(2004, 1, 1)
 end_date = datetime.now() - timedelta(minutes=16) # Most recent allowed data
 
 request_params = StockBarsRequest(
